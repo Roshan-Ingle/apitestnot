@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification API Test</title>
+    <style>
+        body { font-family: system-ui, sans-serif; text-align: center; padding: 50px; background: #f4f4f9; }
+        button { padding: 12px 24px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px; border: none; border-radius: 5px; background: #007bff; color: white; }
+        button:hover { background: #0056b3; }
+        #status { margin-top: 20px; font-weight: bold; color: #555; }
+    </style>
+</head>
+<body>
+
+    <h1>Chrome Notification API Test</h1>
+    <p>Test Chrome's built-in local and background notification system.</p>
+    
+    <button onclick="requestPermission()">1. Request Permission</button>
+    <button onclick="showLocalNotification()">2. Test Local Notification</button>
+    <button onclick="showBackgroundNotification()">3. Test Persistent Notification</button>
+
+    <div id="status">Permission Status: Unknown</div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+
+        // Update status text on load
+        function updateStatus() {
+            statusDiv.innerText = `Permission Status: ${Notification.permission}`;
+        }
+        updateStatus();
+
+        // 1. Request Permission
+        async function requestPermission() {
+            const permission = await Notification.requestPermission();
+            updateStatus();
+            if (permission === 'granted') {
+                registerServiceWorker();
+            }
+        }
+
+        // 2. Local Notification (Works only when tab is active)
+        function showLocalNotification() {
+            if (Notification.permission === 'granted') {
+                new Notification("Local Alert!", {
+                    body: "This is a basic foreground notification.",
+                    icon: "https://via.placeholder.com/100"
+                });
+            } else {
+                alert("Please grant notification permission first!");
+            }
+        }
+
+        // 3. Persistent Background Notification (Uses the Service Worker)
+        async function showBackgroundNotification() {
+            if (Notification.permission === 'granted') {
+                const reg = await navigator.serviceWorker.ready;
+                reg.showNotification("Background Alert!", {
+                    body: "This works via Service Worker (even if you switch tabs!).",
+                    icon: "https://via.placeholder.com/100",
+                    tag: "test-notification" // Prevents duplicates
+                });
+            } else {
+                alert("Please grant notification permission first!");
+            }
+        }
+
+        // --- Service Worker Magic Trick ---
+        // This registers this exact HTML file as a service worker.
+        // If Chrome executes this file as a Service Worker, it ignores the HTML and runs this block.
+        if ('serviceWorker' in navigator) {
+            if (navigator.serviceWorker.controller) {
+                // Inside the Service Worker context
+                self.addEventListener('push', (event) => {
+                    // Logic for when server pushes happen would go here
+                });
+            } else {
+                // Inside the standard Browser context, register itself
+                registerServiceWorker();
+            }
+        }
+
+        async function registerServiceWorker() {
+            try {
+                // We pass the current file as the service worker script
+                await navigator.serviceWorker.register(window.location.href);
+                console.log("Service Worker registered successfully!");
+            } catch (err) {
+                console.error("Service Worker registration failed:", err);
+            }
+        }
+    </script>
+</body>
+</html>
